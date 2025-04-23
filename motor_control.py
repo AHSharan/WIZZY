@@ -5,78 +5,89 @@ import logging
 # Set up logging
 logging.basicConfig(level=logging.INFO)
 
-# Define GPIO pins
-M1_IN1 = 4
-M1_IN2 = 17
-M1_EN = 18
+# Define all motor pins
+M1_IN1, M1_IN2, M1_EN = 4, 17, 18
+M2_IN1, M2_IN2, M2_EN = 27, 22, 23
+M3_IN1, M3_IN2, M3_EN = 5, 6, 12
+M4_IN1, M4_IN2, M4_EN = 13, 19, 26
 
-M2_IN1 = 27
-M2_IN2 = 22
-M2_EN = 23
+# All GPIOs to setup
+ALL_PINS = [M1_IN1, M1_IN2, M1_EN,
+            M2_IN1, M2_IN2, M2_EN,
+            M3_IN1, M3_IN2, M3_EN,
+            M4_IN1, M4_IN2, M4_EN]
 
-# Setup
+# Setup GPIO
 GPIO.setmode(GPIO.BCM)
-GPIO.setup([M1_IN1, M1_IN2, M1_EN, M2_IN1, M2_IN2, M2_EN], GPIO.OUT)
+GPIO.setup(ALL_PINS, GPIO.OUT)
 
-# Always enable motors (full speed)
+# Enable all motors
 GPIO.output(M1_EN, GPIO.HIGH)
 GPIO.output(M2_EN, GPIO.HIGH)
+GPIO.output(M3_EN, GPIO.HIGH)
+GPIO.output(M4_EN, GPIO.HIGH)
 
 # --- Movement Functions ---
 
 def forward(duration=None):
     logging.info("Moving forward")
-    GPIO.output(M1_IN1, GPIO.HIGH)
-    GPIO.output(M1_IN2, GPIO.LOW)
-    GPIO.output(M2_IN1, GPIO.HIGH)
-    GPIO.output(M2_IN2, GPIO.LOW)
+    for (IN1, IN2) in [(M1_IN1, M1_IN2), (M2_IN1, M2_IN2), (M3_IN1, M3_IN2), (M4_IN1, M4_IN2)]:
+        GPIO.output(IN1, GPIO.HIGH)
+        GPIO.output(IN2, GPIO.LOW)
     if duration:
         time.sleep(duration)
         stop()
 
 def backward(duration=None):
     logging.info("Moving backward")
-    GPIO.output(M1_IN1, GPIO.LOW)
-    GPIO.output(M1_IN2, GPIO.HIGH)
-    GPIO.output(M2_IN1, GPIO.LOW)
-    GPIO.output(M2_IN2, GPIO.HIGH)
+    for (IN1, IN2) in [(M1_IN1, M1_IN2), (M2_IN1, M2_IN2), (M3_IN1, M3_IN2), (M4_IN1, M4_IN2)]:
+        GPIO.output(IN1, GPIO.LOW)
+        GPIO.output(IN2, GPIO.HIGH)
     if duration:
         time.sleep(duration)
         stop()
 
 def turn_left(duration=None):
     logging.info("Turning left")
-    GPIO.output(M1_IN1, GPIO.LOW)
-    GPIO.output(M1_IN2, GPIO.HIGH)
-    GPIO.output(M2_IN1, GPIO.HIGH)
-    GPIO.output(M2_IN2, GPIO.LOW)
+    # Left motors backward, right motors forward
+    for (IN1, IN2) in [(M1_IN1, M1_IN2), (M3_IN1, M3_IN2)]:
+        GPIO.output(IN1, GPIO.LOW)
+        GPIO.output(IN2, GPIO.HIGH)
+    for (IN1, IN2) in [(M2_IN1, M2_IN2), (M4_IN1, M4_IN2)]:
+        GPIO.output(IN1, GPIO.HIGH)
+        GPIO.output(IN2, GPIO.LOW)
     if duration:
         time.sleep(duration)
         stop()
 
 def turn_right(duration=None):
     logging.info("Turning right")
-    GPIO.output(M1_IN1, GPIO.HIGH)
-    GPIO.output(M1_IN2, GPIO.LOW)
-    GPIO.output(M2_IN1, GPIO.LOW)
-    GPIO.output(M2_IN2, GPIO.HIGH)
+    # Left motors forward, right motors backward
+    for (IN1, IN2) in [(M1_IN1, M1_IN2), (M3_IN1, M3_IN2)]:
+        GPIO.output(IN1, GPIO.HIGH)
+        GPIO.output(IN2, GPIO.LOW)
+    for (IN1, IN2) in [(M2_IN1, M2_IN2), (M4_IN1, M4_IN2)]:
+        GPIO.output(IN1, GPIO.LOW)
+        GPIO.output(IN2, GPIO.HIGH)
     if duration:
         time.sleep(duration)
         stop()
 
 def stop():
     logging.info("Stopping")
-    GPIO.output(M1_IN1, GPIO.LOW)
-    GPIO.output(M1_IN2, GPIO.LOW)
-    GPIO.output(M2_IN1, GPIO.LOW)
-    GPIO.output(M2_IN2, GPIO.LOW)
+    for (IN1, IN2) in [(M1_IN1, M1_IN2), (M2_IN1, M2_IN2), (M3_IN1, M3_IN2), (M4_IN1, M4_IN2)]:
+        GPIO.output(IN1, GPIO.LOW)
+        GPIO.output(IN2, GPIO.LOW)
 
 def cleanup():
     stop()
     GPIO.cleanup()
+
+# --- Test Block ---
 if __name__ == "__main__":
     try:
-        print("Starting motor test...")
+        print("Starting 4-motor test...")
+
         forward(duration=2)
         time.sleep(1)
 
@@ -90,7 +101,7 @@ if __name__ == "__main__":
         time.sleep(1)
 
         stop()
-        print("Motor test complete.")
+        print("Test complete!")
 
     except KeyboardInterrupt:
         print("Test interrupted by user.")
