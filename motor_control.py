@@ -5,84 +5,95 @@ import logging
 # Set up logging
 logging.basicConfig(level=logging.INFO)
 
-# Define GPIO pins for motor control
-LEFT_MOTOR_IN1 = 5
-LEFT_MOTOR_IN2 = 6
-RIGHT_MOTOR_IN3 = 13
-RIGHT_MOTOR_IN4 = 19
-PWM_FREQ = 50
+# Define GPIO pins
+M1_IN1 = 4
+M1_IN2 = 17
+M1_EN = 18
 
-# Set up GPIO mode and pins
+M2_IN1 = 27
+M2_IN2 = 22
+M2_EN = 23
+
+# Setup
 GPIO.setmode(GPIO.BCM)
-GPIO.setup(LEFT_MOTOR_IN1, GPIO.OUT)
-GPIO.setup(LEFT_MOTOR_IN2, GPIO.OUT)
-GPIO.setup(RIGHT_MOTOR_IN3, GPIO.OUT)
-GPIO.setup(RIGHT_MOTOR_IN4, GPIO.OUT)
+GPIO.setup([M1_IN1, M1_IN2, M1_EN, M2_IN1, M2_IN2, M2_EN], GPIO.OUT)
 
-# Initialize PWM for motor control
-left_pwm1 = GPIO.PWM(LEFT_MOTOR_IN1, PWM_FREQ)
-left_pwm2 = GPIO.PWM(LEFT_MOTOR_IN2, PWM_FREQ)
-right_pwm3 = GPIO.PWM(RIGHT_MOTOR_IN3, PWM_FREQ)
-right_pwm4 = GPIO.PWM(RIGHT_MOTOR_IN4, PWM_FREQ)
+# Always enable motors (full speed)
+GPIO.output(M1_EN, GPIO.HIGH)
+GPIO.output(M2_EN, GPIO.HIGH)
 
-# Start PWM with 0 duty cycle
-left_pwm1.start(0)
-left_pwm2.start(0)
-right_pwm3.start(0)
-right_pwm4.start(0)
+# --- Movement Functions ---
 
-# Function to move forward
-def forward(speed=50, duration=None):
-    logging.info(f"Moving forward at speed {speed} for duration {duration}.")
-    left_pwm1.ChangeDutyCycle(speed)
-    left_pwm2.ChangeDutyCycle(0)
-    right_pwm3.ChangeDutyCycle(speed)
-    right_pwm4.ChangeDutyCycle(0)
+def forward(duration=None):
+    logging.info("Moving forward")
+    GPIO.output(M1_IN1, GPIO.HIGH)
+    GPIO.output(M1_IN2, GPIO.LOW)
+    GPIO.output(M2_IN1, GPIO.HIGH)
+    GPIO.output(M2_IN2, GPIO.LOW)
     if duration:
         time.sleep(duration)
         stop()
 
-# Function to move backward
-def backward(speed=50, duration=None):
-    logging.info(f"Moving backward at speed {speed} for duration {duration}.")
-    left_pwm1.ChangeDutyCycle(0)
-    left_pwm2.ChangeDutyCycle(speed)
-    right_pwm3.ChangeDutyCycle(0)
-    right_pwm4.ChangeDutyCycle(speed)
+def backward(duration=None):
+    logging.info("Moving backward")
+    GPIO.output(M1_IN1, GPIO.LOW)
+    GPIO.output(M1_IN2, GPIO.HIGH)
+    GPIO.output(M2_IN1, GPIO.LOW)
+    GPIO.output(M2_IN2, GPIO.HIGH)
     if duration:
         time.sleep(duration)
         stop()
 
-# Function to turn left
-def turn_left(speed=50, duration=None):
-    logging.info(f"Turning left at speed {speed} for duration {duration}.")
-    left_pwm1.ChangeDutyCycle(0)
-    left_pwm2.ChangeDutyCycle(speed)
-    right_pwm3.ChangeDutyCycle(speed)
-    right_pwm4.ChangeDutyCycle(0)
+def turn_left(duration=None):
+    logging.info("Turning left")
+    GPIO.output(M1_IN1, GPIO.LOW)
+    GPIO.output(M1_IN2, GPIO.HIGH)
+    GPIO.output(M2_IN1, GPIO.HIGH)
+    GPIO.output(M2_IN2, GPIO.LOW)
     if duration:
         time.sleep(duration)
         stop()
 
-# Function to turn right
-def turn_right(speed=50, duration=None):
-    logging.info(f"Turning right at speed {speed} for duration {duration}.")
-    left_pwm1.ChangeDutyCycle(speed)
-    left_pwm2.ChangeDutyCycle(0)
-    right_pwm3.ChangeDutyCycle(0)
-    right_pwm4.ChangeDutyCycle(speed)
+def turn_right(duration=None):
+    logging.info("Turning right")
+    GPIO.output(M1_IN1, GPIO.HIGH)
+    GPIO.output(M1_IN2, GPIO.LOW)
+    GPIO.output(M2_IN1, GPIO.LOW)
+    GPIO.output(M2_IN2, GPIO.HIGH)
     if duration:
         time.sleep(duration)
         stop()
 
-# Function to stop the motors
 def stop():
-    left_pwm1.ChangeDutyCycle(0)
-    left_pwm2.ChangeDutyCycle(0)
-    right_pwm3.ChangeDutyCycle(0)
-    right_pwm4.ChangeDutyCycle(0)
+    logging.info("Stopping")
+    GPIO.output(M1_IN1, GPIO.LOW)
+    GPIO.output(M1_IN2, GPIO.LOW)
+    GPIO.output(M2_IN1, GPIO.LOW)
+    GPIO.output(M2_IN2, GPIO.LOW)
 
-# Function to clean up GPIO settings
 def cleanup():
     stop()
     GPIO.cleanup()
+if __name__ == "__main__":
+    try:
+        print("Starting motor test...")
+        forward(duration=2)
+        time.sleep(1)
+
+        backward(duration=2)
+        time.sleep(1)
+
+        turn_left(duration=2)
+        time.sleep(1)
+
+        turn_right(duration=2)
+        time.sleep(1)
+
+        stop()
+        print("Motor test complete.")
+
+    except KeyboardInterrupt:
+        print("Test interrupted by user.")
+
+    finally:
+        cleanup()
