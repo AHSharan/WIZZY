@@ -65,17 +65,17 @@ class TestIRSensors(unittest.TestCase):
     def test_obstacle_detection(self, mock_gpio_input):
         """Test obstacle detection scenarios"""
         # Test case 1: No obstacles
-        mock_gpio_input.side_effect = [0, 0, 0]  # Left, Center, Right
+        mock_gpio_input.side_effect = [1, 1, 1]  # Left, Center, Right (inverted)
         readings = self.read_all_sensors()
         self.assertEqual(readings, {'left': 0, 'center': 0, 'right': 0})
 
         # Test case 2: Center obstacle
-        mock_gpio_input.side_effect = [0, 1, 0]  # Left, Center, Right
+        mock_gpio_input.side_effect = [1, 0, 1]  # Left, Center, Right (inverted)
         readings = self.read_all_sensors()
         self.assertEqual(readings, {'left': 0, 'center': 1, 'right': 0})
 
         # Test case 3: All obstacles
-        mock_gpio_input.side_effect = [1, 1, 1]  # Left, Center, Right
+        mock_gpio_input.side_effect = [0, 0, 0]  # Left, Center, Right (inverted)
         readings = self.read_all_sensors()
         self.assertEqual(readings, {'left': 1, 'center': 1, 'right': 1})
 

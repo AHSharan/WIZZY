@@ -28,9 +28,9 @@ def setup_ir_sensors():
 # Read IR sensors
 def read_ir_sensors():
     return {
-        'left': GPIO.input(IR_LEFT),
-        'center': GPIO.input(IR_CENTER),
-        'right': GPIO.input(IR_RIGHT)
+        'left': not GPIO.input(IR_LEFT),    # Invert the value
+        'center': not GPIO.input(IR_CENTER),  # Invert the value
+        'right': not GPIO.input(IR_RIGHT)    # Invert the value
     }
 
 import motor_control

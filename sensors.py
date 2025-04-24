@@ -55,7 +55,7 @@ def read_ultrasonic_distance():
 
 def read_ir_sensor():
     """Checks if the infrared sensor is triggered."""
-    return GPIO.input(IR_PIN) == 0
+    return not GPIO.input(IR_PIN)
 
 def cleanup():
     GPIO.cleanup()
