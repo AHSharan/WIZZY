@@ -1,121 +1,67 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>IWIZZY Surveillance Robot</title>
+    <title>Robot Control</title>
     <style>
         body {
             font-family: Arial, sans-serif;
-            background-color: #f4f4f4;
-            margin: 0;
-            padding: 20px;
-        }
-
-        h1 {
-            color: #333;
+            margin: 20px;
             text-align: center;
         }
-
-        h2 {
-            color: #555;
+        .camera-feed {
+            margin-bottom: 20px;
         }
-
         .controls {
-            display: flex;
-            justify-content: center;
-            flex-wrap: wrap;
-            margin: 20px 0;
-        }
-
-        button {
-            background-color: #4CAF50; /* Green */
-            border: none;
-            color: white;
-            padding: 15px 20px;
-            text-align: center;
-            text-decoration: none;
             display: inline-block;
-            font-size: 16px;
+            margin: 10px;
+        }
+        button {
+            padding: 10px 20px;
             margin: 5px;
+            font-size: 16px;
             cursor: pointer;
-            border-radius: 5px;
-            transition: background-color 0.3s;
         }
-
-        button:hover {
-            background-color: #45a049; /* Darker green */
-        }
-
-        #sensorData {
-            background-color: #fff;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            padding: 10px;
-            margin-top: 20px;
-        }
-
-        img {
-            display: block;
-            margin: 0 auto;
-            border: 1px solid #ddd;
+        #video-feed {
+            max-width: 640px;
+            border: 2px solid #333;
             border-radius: 5px;
         }
     </style>
 </head>
 <body>
-    <h1>IWIZZY: Self-Patrolling Robot</h1>
-    <div>
-        <img src="{{ url_for('video_feed') }}" width="640" height="480" />
+    <h1>Robot Control Panel</h1>
+    
+    <div class="camera-feed">
+        <img id="video-feed" src="{{ url_for('video_feed') }}" alt="Camera Feed">
     </div>
 
-    <h2>Manual Controls</h2>
     <div class="controls">
-        <button onclick="move('forward')">Forward</button>
-        <button onclick="move('left')">Left</button>
-        <button onclick="move('stop')">Stop</button>
-        <button onclick="move('right')">Right</button>
-        <button onclick="move('backward')">Backward</button>
+        <div>
+            <button onclick="move('forward')">Forward</button>
+        </div>
+        <div>
+            <button onclick="move('left')">Left</button>
+            <button onclick="move('stop')">Stop</button>
+            <button onclick="move('right')">Right</button>
+        </div>
+        <div>
+            <button onclick="move('backward')">Backward</button>
+        </div>
     </div>
-
-    <button onclick="startPatrol()">Start Patrol</button>
-
-    <h2>Sensor Data</h2>
-    <button onclick="fetchSensors()">Refresh Sensors</button>
-    <div id="sensorData"></div>
 
     <script>
         function move(direction) {
             fetch('/move', {
                 method: 'POST',
-                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-                body: `direction=${direction}&speed=50&duration=1`
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: 'direction=' + direction + '&speed=50&duration=1.0'
             })
-            .then(res => res.json())
+            .then(response => response.json())
             .then(data => console.log(data))
-            .catch(err => console.error(err));
+            .catch(error => console.error('Error:', error));
         }
-
-        function startPatrol() {
-            fetch('/patrol', { method: 'POST' })
-                .then(res => res.json())
-                .then(data => console.log(data))
-                .catch(err => console.error(err));
-        }
-
-        function fetchSensors() {
-            fetch('/sensors')
-                .then(res => res.json())
-                .then(data => {
-                    document.getElementById('sensorData').innerHTML = `
-                        <p>Temperature: ${data.temperature.toFixed(2)} °C</p>
-                        <p>Distance: ${data.distance.toFixed(2)} cm</p>
-                        <p>IR Triggered: ${data.ir_triggered}</p>
-                    `;
-                })
-                .catch(err => console.error(err));
-        }
-
-        // Call fetchSensors every 5 seconds for real-time updates
-        setInterval(fetchSensors, 5000);
     </script>
 </body>
 </html>
