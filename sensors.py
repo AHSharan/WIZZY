@@ -5,9 +5,9 @@ import glob
 
 GPIO.setmode(GPIO.BCM)
 
-TRIG_PIN = 23
-ECHO_PIN = 24
-IR_PIN   = 17
+TRIG_PIN = 29
+ECHO_PIN = 34
+IR_PIN   = 37
 
 GPIO.setup(TRIG_PIN, GPIO.OUT)
 GPIO.setup(ECHO_PIN, GPIO.IN)
