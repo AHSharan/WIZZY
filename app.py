@@ -4,7 +4,8 @@ import threading
 import logging
 import os
 
-from face_utils import load_known_faces, identify_faces
+# Comment out face recognition import
+# from face_utils import load_known_faces, identify_faces
 import motor_control
 from sensors import read_ultrasonic_distance, read_temperature, read_ir_sensor
 
@@ -29,7 +30,8 @@ except (ImportError, Exception) as e:
     use_picamera = False
     logging.info("Falling back to USB webcam")
 
-known_encodings, known_names = load_known_faces('known_faces')
+# Comment out face recognition loading
+# known_encodings, known_names = load_known_faces('known_faces')
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -41,11 +43,12 @@ def gen_frames():
                 # Use PiCamera
                 for frame in camera.capture_continuous(raw_capture, format="bgr", use_video_port=True):
                     image = frame.array
-                    face_data = identify_faces(image, known_encodings, known_names)
-                    for (top, right, bottom, left, name) in face_data:
-                        cv2.rectangle(image, (left, top), (right, bottom), (0, 255, 0), 2)
-                        cv2.putText(image, name, (left, top - 10),
-                                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,255,0), 1)
+                    # Comment out face recognition processing
+                    # face_data = identify_faces(image, known_encodings, known_names)
+                    # for (top, right, bottom, left, name) in face_data:
+                    #     cv2.rectangle(image, (left, top), (right, bottom), (0, 255, 0), 2)
+                    #     cv2.putText(image, name, (left, top - 10),
+                    #                 cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,255,0), 1)
                     ret, buffer = cv2.imencode('.jpg', image)
                     if not ret:
                         continue
@@ -62,11 +65,12 @@ def gen_frames():
             if not success:
                 logging.error("Failed to capture frame from camera.")
                 break
-            face_data = identify_faces(frame, known_encodings, known_names)
-            for (top, right, bottom, left, name) in face_data:
-                cv2.rectangle(frame, (left, top), (right, bottom), (0, 255, 0), 2)
-                cv2.putText(frame, name, (left, top - 10),
-                            cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,255,0), 1)
+            # Comment out face recognition processing
+            # face_data = identify_faces(frame, known_encodings, known_names)
+            # for (top, right, bottom, left, name) in face_data:
+            #     cv2.rectangle(frame, (left, top), (right, bottom), (0, 255, 0), 2)
+            #     cv2.putText(frame, name, (left, top - 10),
+            #                 cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,255,0), 1)
             ret, buffer = cv2.imencode('.jpg', frame)
             if not ret:
                 continue
@@ -123,11 +127,13 @@ def patrol():
 def cleanup():
     global running
     running = False
-    camera.release()
+    if not use_picamera:
+        camera.release()
     motor_control.cleanup()
 
 if __name__ == '__main__':
     try:
+        # Enable threading and allow external access
         app.run(host='0.0.0.0', port=5000, debug=False, threaded=True)
     except KeyboardInterrupt:
         pass
