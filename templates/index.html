@@ -7,24 +7,57 @@
             font-family: Arial, sans-serif;
             margin: 20px;
             text-align: center;
+            background-color: #f0f0f0;
         }
         .camera-feed {
-            margin-bottom: 20px;
+            margin: 20px auto;
+            max-width: 640px;
+            background-color: #000;
+            padding: 10px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.2);
         }
         .controls {
             display: inline-block;
-            margin: 10px;
+            margin: 20px;
+            padding: 20px;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
         }
         button {
-            padding: 10px 20px;
+            padding: 15px 30px;
             margin: 5px;
-            font-size: 16px;
+            font-size: 18px;
             cursor: pointer;
+            border: none;
+            border-radius: 5px;
+            background-color: #4CAF50;
+            color: white;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        button:active {
+            background-color: #3d8b40;
+        }
+        button.stop {
+            background-color: #f44336;
+        }
+        button.stop:hover {
+            background-color: #da190b;
         }
         #video-feed {
+            width: 100%;
             max-width: 640px;
-            border: 2px solid #333;
             border-radius: 5px;
+            display: block;
+        }
+        .status {
+            margin-top: 10px;
+            padding: 10px;
+            color: #666;
         }
     </style>
 </head>
@@ -37,31 +70,63 @@
 
     <div class="controls">
         <div>
-            <button onclick="move('forward')">Forward</button>
+            <button onclick="move('forward')">⬆️ Forward</button>
         </div>
         <div>
-            <button onclick="move('left')">Left</button>
-            <button onclick="move('stop')">Stop</button>
-            <button onclick="move('right')">Right</button>
+            <button onclick="move('left')">⬅️ Left</button>
+            <button class="stop" onclick="move('stop')">🛑 Stop</button>
+            <button onclick="move('right')">Right ➡️</button>
         </div>
         <div>
-            <button onclick="move('backward')">Backward</button>
+            <button onclick="move('backward')">⬇️ Backward</button>
         </div>
     </div>
 
+    <div class="status" id="status"></div>
+
     <script>
         function move(direction) {
+            const statusDiv = document.getElementById('status');
+            statusDiv.textContent = 'Moving: ' + direction;
+            
             fetch('/move', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded',
                 },
-                body: 'direction=' + direction + '&speed=50&duration=1.0'
+                body: 'direction=' + direction + '&duration=1.0'
             })
             .then(response => response.json())
-            .then(data => console.log(data))
-            .catch(error => console.error('Error:', error));
+            .then(data => {
+                console.log(data);
+                statusDiv.textContent = 'Status: ' + data.status + ' - ' + direction;
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                statusDiv.textContent = 'Error: ' + error;
+            });
         }
+
+        // Add keyboard controls
+        document.addEventListener('keydown', function(event) {
+            switch(event.key) {
+                case 'ArrowUp':
+                    move('forward');
+                    break;
+                case 'ArrowDown':
+                    move('backward');
+                    break;
+                case 'ArrowLeft':
+                    move('left');
+                    break;
+                case 'ArrowRight':
+                    move('right');
+                    break;
+                case ' ':  // Space bar
+                    move('stop');
+                    break;
+            }
+        });
     </script>
 </body>
 </html>
