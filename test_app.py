@@ -3,6 +3,8 @@ import cv2
 import logging
 import os
 import RPi.GPIO as GPIO
+import time
+from smart_patrol import SmartPatrol
 
 # Set up logging first
 logging.basicConfig(level=logging.INFO)
@@ -12,12 +14,37 @@ logger = logging.getLogger(__name__)
 GPIO.setwarnings(False)  # Disable GPIO warnings
 GPIO.cleanup()  # Clean up GPIO first
 
+# IR Sensor pins - Updated to use free GPIO pins
+IR_LEFT = 14    # GPIO14 - free
+IR_CENTER = 15  # GPIO15 - free
+IR_RIGHT = 24   # GPIO24 - free
+
+# Setup IR sensors
+def setup_ir_sensors():
+    GPIO.setup(IR_LEFT, GPIO.IN)
+    GPIO.setup(IR_CENTER, GPIO.IN)
+    GPIO.setup(IR_RIGHT, GPIO.IN)
+
+# Read IR sensors
+def read_ir_sensors():
+    return {
+        'left': GPIO.input(IR_LEFT),
+        'center': GPIO.input(IR_CENTER),
+        'right': GPIO.input(IR_RIGHT)
+    }
+
 import motor_control
 
 app = Flask(__name__)
 running = True
 camera = None
 use_picamera = False
+
+# Initialize IR sensors
+setup_ir_sensors()
+
+# Initialize smart patrol
+smart_patrol = SmartPatrol(motor_control, read_ir_sensors)
 
 def init_camera():
     global camera, use_picamera
@@ -85,6 +112,17 @@ def move():
         direction = request.form.get('direction', 'stop')
         duration = float(request.form.get('duration', 1.0))
 
+        # Read IR sensors before moving
+        ir_data = read_ir_sensors()
+        
+        # Basic collision avoidance
+        if direction == 'forward' and ir_data['center']:
+            return jsonify({"status": "blocked", "message": "Obstacle detected ahead", "sensors": ir_data}), 400
+        elif direction == 'left' and ir_data['left']:
+            return jsonify({"status": "blocked", "message": "Obstacle detected on left", "sensors": ir_data}), 400
+        elif direction == 'right' and ir_data['right']:
+            return jsonify({"status": "blocked", "message": "Obstacle detected on right", "sensors": ir_data}), 400
+
         if direction == 'forward':
             motor_control.forward(duration=duration)
         elif direction == 'backward':
@@ -95,9 +133,43 @@ def move():
             motor_control.turn_right(duration=duration)
         else:
             motor_control.stop()
-        return jsonify({"status": "ok", "direction": direction})
+        
+        # Return both movement status and sensor data
+        return jsonify({
+            "status": "ok", 
+            "direction": direction,
+            "sensors": read_ir_sensors()
+        })
     except Exception as e:
         logger.error(f"Error in move command: {str(e)}")
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+@app.route('/sensors')
+def get_sensors():
+    try:
+        sensor_data = read_ir_sensors()
+        return jsonify({
+            "status": "ok",
+            "sensors": sensor_data
+        })
+    except Exception as e:
+        logger.error(f"Error reading sensors: {str(e)}")
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+@app.route('/patrol', methods=['POST'])
+def patrol():
+    try:
+        action = request.form.get('action', 'start')
+        if action == 'start':
+            if smart_patrol.start_patrol():
+                return jsonify({"status": "ok", "message": "Smart patrol started"})
+            else:
+                return jsonify({"status": "error", "message": "Patrol already running"}), 400
+        else:
+            smart_patrol.stop_patrol()
+            return jsonify({"status": "ok", "message": "Smart patrol stopped"})
+    except Exception as e:
+        logger.error(f"Error in patrol command: {str(e)}")
         return jsonify({"status": "error", "message": str(e)}), 500
 
 def cleanup():
@@ -108,6 +180,7 @@ def cleanup():
             camera.stop()
         else:
             camera.release()
+    smart_patrol.stop_patrol()  # Stop patrol if running
     motor_control.cleanup()
     GPIO.cleanup()
 

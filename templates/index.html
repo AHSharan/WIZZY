@@ -59,6 +59,27 @@
             padding: 10px;
             color: #666;
         }
+        .sensors {
+            display: flex;
+            justify-content: center;
+            margin: 20px;
+            gap: 20px;
+        }
+        .sensor {
+            padding: 10px;
+            border-radius: 5px;
+            background-color: white;
+            box-shadow: 0 0 5px rgba(0,0,0,0.1);
+        }
+        .sensor.active {
+            background-color: #ff4444;
+            color: white;
+        }
+        .warning {
+            color: #ff4444;
+            font-weight: bold;
+            margin-top: 10px;
+        }
     </style>
 </head>
 <body>
@@ -66,6 +87,12 @@
     
     <div class="camera-feed">
         <img id="video-feed" src="{{ url_for('video_feed') }}" alt="Camera Feed">
+    </div>
+
+    <div class="sensors">
+        <div class="sensor" id="left-sensor">Left IR: Clear</div>
+        <div class="sensor" id="center-sensor">Center IR: Clear</div>
+        <div class="sensor" id="right-sensor">Right IR: Clear</div>
     </div>
 
     <div class="controls">
@@ -80,14 +107,68 @@
         <div>
             <button onclick="move('backward')">⬇️ Backward</button>
         </div>
+        <div class="patrol-controls">
+            <button id="patrolBtn" onclick="togglePatrol()" class="patrol">🤖 Start Smart Patrol</button>
+        </div>
     </div>
 
     <div class="status" id="status"></div>
+    <div class="warning" id="warning"></div>
 
     <script>
+        let isPatrolling = false;
+
+        function togglePatrol() {
+            const action = isPatrolling ? 'stop' : 'start';
+            const btn = document.getElementById('patrolBtn');
+            
+            fetch('/patrol', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: 'action=' + action
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'ok') {
+                    isPatrolling = !isPatrolling;
+                    btn.textContent = isPatrolling ? '🛑 Stop Patrol' : '🤖 Start Smart Patrol';
+                    btn.style.backgroundColor = isPatrolling ? '#f44336' : '#4CAF50';
+                    document.getElementById('status').textContent = data.message;
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                document.getElementById('warning').textContent = 'Error: ' + error;
+            });
+        }
+
+        function updateSensors() {
+            fetch('/sensors')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'ok') {
+                        const sensors = data.sensors;
+                        updateSensorDisplay('left-sensor', sensors.left, 'Left IR');
+                        updateSensorDisplay('center-sensor', sensors.center, 'Center IR');
+                        updateSensorDisplay('right-sensor', sensors.right, 'Right IR');
+                    }
+                })
+                .catch(error => console.error('Error:', error));
+        }
+
+        function updateSensorDisplay(id, value, label) {
+            const element = document.getElementById(id);
+            element.textContent = `${label}: ${value ? 'OBSTACLE' : 'Clear'}`;
+            element.className = 'sensor' + (value ? ' active' : '');
+        }
+
         function move(direction) {
             const statusDiv = document.getElementById('status');
+            const warningDiv = document.getElementById('warning');
             statusDiv.textContent = 'Moving: ' + direction;
+            warningDiv.textContent = '';
             
             fetch('/move', {
                 method: 'POST',
@@ -99,7 +180,18 @@
             .then(response => response.json())
             .then(data => {
                 console.log(data);
-                statusDiv.textContent = 'Status: ' + data.status + ' - ' + direction;
+                if (data.status === 'blocked') {
+                    warningDiv.textContent = data.message;
+                    statusDiv.textContent = 'Movement blocked';
+                } else {
+                    statusDiv.textContent = 'Status: ' + data.status + ' - ' + direction;
+                }
+                // Update sensor display
+                if (data.sensors) {
+                    updateSensorDisplay('left-sensor', data.sensors.left, 'Left IR');
+                    updateSensorDisplay('center-sensor', data.sensors.center, 'Center IR');
+                    updateSensorDisplay('right-sensor', data.sensors.right, 'Right IR');
+                }
             })
             .catch(error => {
                 console.error('Error:', error);
@@ -127,6 +219,9 @@
                     break;
             }
         });
+
+        // Update sensors every second
+        setInterval(updateSensors, 1000);
     </script>
 </body>
 </html>
