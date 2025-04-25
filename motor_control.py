@@ -37,6 +37,9 @@ def forward(speed=None, duration=None):  # Keep speed param for compatibility bu
     if duration:
         time.sleep(duration)
         stop()
+    else:
+        time.sleep(2.0)  # Default duration of 2 seconds
+        stop()
 
 def backward(speed=None, duration=None):  # Keep speed param for compatibility but don't use it
     logging.info("Moving backward")
@@ -45,6 +48,9 @@ def backward(speed=None, duration=None):  # Keep speed param for compatibility b
         GPIO.output(IN2, GPIO.HIGH)
     if duration:
         time.sleep(duration)
+        stop()
+    else:
+        time.sleep(2.0)  # Default duration of 2 seconds
         stop()
 
 def turn_left(speed=None, duration=None):  # Keep speed param for compatibility but don't use it
@@ -59,6 +65,9 @@ def turn_left(speed=None, duration=None):  # Keep speed param for compatibility 
     if duration:
         time.sleep(duration)
         stop()
+    else:
+        time.sleep(2.0)  # Default duration of 2 seconds
+        stop()
 
 def turn_right(speed=None, duration=None):  # Keep speed param for compatibility but don't use it
     logging.info("Turning right")
@@ -71,6 +80,9 @@ def turn_right(speed=None, duration=None):  # Keep speed param for compatibility
         GPIO.output(IN2, GPIO.HIGH)
     if duration:
         time.sleep(duration)
+        stop()
+    else:
+        time.sleep(2.0)  # Default duration of 2 seconds
         stop()
 
 def stop():
