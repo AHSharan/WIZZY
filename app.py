@@ -8,10 +8,12 @@ import os
 # from face_utils import load_known_faces, identify_faces
 import motor_control
 from sensors import read_ultrasonic_distance, read_temperature, read_ir_sensor
+from smart_patrol import SmartPatrol
 
 app = Flask(__name__)
 
 running = True
+patrol_instance = None  # Global variable to store SmartPatrol instance
 
 # Initialize Raspberry Pi camera
 try:
@@ -35,6 +37,18 @@ except (ImportError, Exception) as e:
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+# Initialize SmartPatrol
+def get_sensor_data():
+    return {
+        'center': read_ultrasonic_distance() < 30,  # True if obstacle within 30cm
+        'left': False,  # Will be updated with side sensors
+        'right': False,  # Will be updated with side sensors
+        'ir': read_ir_sensor()
+    }
+
+patrol_instance = SmartPatrol(motor_control, get_sensor_data)
 
 def gen_frames():
     while running:
@@ -113,22 +127,52 @@ def move():
         motor_control.stop()
     return jsonify({"status": "ok", "direction": direction})
 
-@app.route('/patrol', methods=['POST'])
-def patrol():
+@app.route('/patrol/start', methods=['POST'])
+def start_patrol():
+    """Start the smart patrol"""
+    global patrol_instance
     try:
-        motor_control.forward(speed=50, duration=2)
-        motor_control.turn_right(speed=50, duration=1)
-        motor_control.forward(speed=50, duration=2)
-        motor_control.stop()
-        return jsonify({"status": "patrol_complete"})
+        if patrol_instance.start_patrol():
+            return jsonify({"status": "success", "message": "Smart patrol started"})
+        else:
+            return jsonify({"status": "error", "message": "Patrol already running"}), 400
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        logger.error(f"Error starting patrol: {str(e)}")
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+@app.route('/patrol/stop', methods=['POST'])
+def stop_patrol():
+    """Stop the smart patrol"""
+    global patrol_instance
+    try:
+        patrol_instance.stop_patrol()
+        return jsonify({"status": "success", "message": "Smart patrol stopped"})
+    except Exception as e:
+        logger.error(f"Error stopping patrol: {str(e)}")
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+@app.route('/patrol/status', methods=['GET'])
+def patrol_status():
+    """Get the current patrol status"""
+    global patrol_instance
+    try:
+        status = {
+            "is_patrolling": patrol_instance.is_patrolling,
+            "last_turn": patrol_instance.last_turn.value if patrol_instance.last_turn else None,
+            "consecutive_blocks": patrol_instance.consecutive_blocks
+        }
+        return jsonify(status)
+    except Exception as e:
+        logger.error(f"Error getting patrol status: {str(e)}")
+        return jsonify({"status": "error", "message": str(e)}), 500
 
 def cleanup():
-    global running
+    global running, patrol_instance
     running = False
     if not use_picamera:
         camera.release()
+    if patrol_instance:
+        patrol_instance.stop_patrol()
     motor_control.cleanup()
 
 if __name__ == '__main__':
