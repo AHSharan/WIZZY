@@ -22,7 +22,7 @@ try:
     camera = PiCamera()
     camera.resolution = (640, 480)
     camera.framerate = 30
-    camera.rotation = 180  # Adjust if your camera is upside down
+    camera.rotation = 180  # Rotate camera 180 degrees
     raw_capture = PiRGBArray(camera, size=(640, 480))
     use_picamera = True
     logging.info("Successfully initialized Raspberry Pi camera")

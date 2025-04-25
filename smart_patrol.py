@@ -101,9 +101,17 @@ class SmartPatrol:
         """Enhanced obstacle avoidance logic"""
         logger.info("Obstacle detected, executing avoidance maneuver")
         
+        # Check if all IR sensors are blocked
+        if sensors['left'] and sensors['center'] and sensors['right']:
+            logger.info("All IR sensors blocked, executing full retreat")
+            self.motor_control.backward(duration=1.5)
+            time.sleep(1.5)
+            # Try again with a different approach
+            return self._handle_obstacle(self.read_sensors())
+        
         # First backup a bit
-        self.motor_control.backward(duration=1.0)
-        time.sleep(1.0)
+        self.motor_control.backward(duration=0.8)
+        time.sleep(0.8)
         
         # Recheck sensors after backing up
         sensors = self.read_sensors()
@@ -121,13 +129,13 @@ class SmartPatrol:
         
         # Execute the turn
         if turn_direction == Direction.LEFT:
-            self.motor_control.turn_left(duration=1.5)
+            self.motor_control.turn_left(duration=1.0)
             self.last_turn = Direction.LEFT
         else:
-            self.motor_control.turn_right(duration=1.5)
+            self.motor_control.turn_right(duration=1.0)
             self.last_turn = Direction.RIGHT
         
-        time.sleep(1.5)  # Wait for turn to complete
+        time.sleep(1.0)  # Wait for turn to complete
         
         # Add move to history
         self.move_history.append(turn_direction)
@@ -179,18 +187,18 @@ class SmartPatrol:
         logger.info("Executing escape maneuver")
         
         # Back up more than usual
-        self.motor_control.backward(duration=1.5)
-        time.sleep(1.5)
+        self.motor_control.backward(duration=1.2)
+        time.sleep(1.2)
         
         # Choose turn direction based on history
         if self._should_turn_left():
-            self.motor_control.turn_left(duration=2.0)
+            self.motor_control.turn_left(duration=1.0)
             self.last_turn = Direction.LEFT
         else:
-            self.motor_control.turn_right(duration=2.0)
+            self.motor_control.turn_right(duration=1.0)
             self.last_turn = Direction.RIGHT
             
-        time.sleep(2.0)
+        time.sleep(1.0)
         
         # Reset counters
         self.consecutive_blocks = 0
@@ -216,6 +224,13 @@ class SmartPatrol:
         """Move forward with enhanced course corrections"""
         sensors = self.read_sensors()
         
+        # Check if all IR sensors are blocked
+        if sensors['left'] and sensors['center'] and sensors['right']:
+            logger.info("All IR sensors blocked during forward movement")
+            self.motor_control.backward(duration=1.5)
+            time.sleep(1.5)
+            return self._handle_obstacle(sensors)
+        
         # If slightly off-center, make minor corrections
         if not sensors['center']:
             if sensors['left']:  # Too close to left wall
@@ -226,7 +241,7 @@ class SmartPatrol:
                 time.sleep(0.2)
                 
         # Move forward
-        self.motor_control.forward(duration=3.0)
+        self.motor_control.forward(duration=1.5)  # Reduced from 3.0 to 1.5 seconds
         time.sleep(0.2)  # Slightly shorter than movement to allow for overlap
         
         # Update last clear direction
