@@ -80,6 +80,15 @@
             font-weight: bold;
             margin-top: 10px;
         }
+        .logout-controls {
+            margin-top: 20px;
+        }
+        button.logout {
+            background-color: #f44336;
+        }
+        button.logout:hover {
+            background-color: #da190b;
+        }
     </style>
 </head>
 <body>
@@ -109,6 +118,9 @@
         </div>
         <div class="patrol-controls">
             <button id="patrolBtn" onclick="togglePatrol()" class="patrol">🤖 Start Smart Patrol</button>
+        </div>
+        <div class="logout-controls">
+            <button onclick="window.location.href='/logout'" class="logout">🚪 Logout</button>
         </div>
     </div>
 

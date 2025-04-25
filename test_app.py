@@ -1,10 +1,11 @@
-from flask import Flask, render_template, Response, jsonify, request
+from flask import Flask, render_template, Response, jsonify, request, session, redirect, url_for
 import cv2
 import logging
 import os
 import RPi.GPIO as GPIO
 import time
 from smart_patrol import SmartPatrol
+from functools import wraps
 
 # Set up logging first
 logging.basicConfig(level=logging.INFO)
@@ -36,6 +37,17 @@ def read_ir_sensors():
 import motor_control
 
 app = Flask(__name__)
+app.secret_key = 'your_secret_key_here'  # Required for session management
+
+# Login required decorator
+def login_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'logged_in' not in session:
+            return redirect(url_for('login'))
+        return f(*args, **kwargs)
+    return decorated_function
+
 running = True
 camera = None
 use_picamera = False
@@ -98,15 +110,37 @@ def gen_frames():
             logger.error(f"Error capturing frame: {str(e)}")
             break
 
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        username = request.form.get('username')
+        password = request.form.get('password')
+        
+        if username == 'sharan' and password == 'root':
+            session['logged_in'] = True
+            return redirect(url_for('index'))
+        else:
+            return render_template('login.html', error='Invalid credentials')
+    
+    return render_template('login.html')
+
+@app.route('/logout')
+def logout():
+    session.pop('logged_in', None)
+    return redirect(url_for('login'))
+
 @app.route('/')
+@login_required
 def index():
     return render_template('index.html')
 
 @app.route('/video_feed')
+@login_required
 def video_feed():
     return Response(gen_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
 
 @app.route('/move', methods=['POST'])
+@login_required
 def move():
     try:
         direction = request.form.get('direction', 'stop')
@@ -145,6 +179,7 @@ def move():
         return jsonify({"status": "error", "message": str(e)}), 500
 
 @app.route('/sensors')
+@login_required
 def get_sensors():
     try:
         sensor_data = read_ir_sensors()
@@ -157,6 +192,7 @@ def get_sensors():
         return jsonify({"status": "error", "message": str(e)}), 500
 
 @app.route('/patrol', methods=['POST'])
+@login_required
 def patrol():
     try:
         action = request.form.get('action', 'start')
